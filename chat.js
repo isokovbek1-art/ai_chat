@@ -38,7 +38,18 @@ exports.handler = async function (event) {
       }),
     });
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseErr) {
+      return {
+        statusCode: 502,
+        body: JSON.stringify({
+          error: `API'dan JSON bo'lmagan javob keldi (status ${res.status}): ${rawText.slice(0, 300)}`,
+        }),
+      };
+    }
 
     if (!res.ok) {
       return {
