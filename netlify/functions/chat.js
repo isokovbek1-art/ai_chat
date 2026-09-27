@@ -9,7 +9,7 @@ exports.handler = async function (event) {
 
   // Kalit shu yerga o'rnatildi. Bu xavfsiz, chunki bu fayl faqat
   // Netlify serverida ishlaydi va tashrif buyuruvchiga hech qachon yuborilmaydi.
-  const API_KEY = process.env.CODECRAFT_API_KEY  "cc_ddTTa582NGQdGgHLw771PK32ZxRheEyqF3YJaOuVHjDhOpXp";
+  const API_KEY = process.env.CODECRAFT_API_KEY || "cc_ddTTa582NGQdGgHLw771PK32ZxRheEyqF3YJaOuVHjDhOpXp";
   const API_URL = "https://codecraftapi.com/v1/chat/completions";
   const MODEL = "claude-opus-5.5";
 
@@ -21,8 +21,8 @@ exports.handler = async function (event) {
   }
 
   try {
-    const body = JSON.parse(event.body  "{}");
-    const messages = body.messages  [];
+    const body = JSON.parse(event.body || "{}");
+    const messages = body.messages || [];
 
     const res = await fetch(API_URL, {
       method: "POST",
@@ -54,7 +54,7 @@ exports.handler = async function (event) {
     if (!res.ok) {
       return {
         statusCode: res.status,
-        body: JSON.stringify({ error: data.error?.message  JSON.stringify(data) }),
+        body: JSON.stringify({ error: data.error?.message || JSON.stringify(data) }),
       };
     }
 
