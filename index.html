@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AI Chat</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+html,body{height:100%;}
+body{background:#F9F5EB;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;color:#2B2B2B;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #E5DDC8}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px}
+.logo i{color:#D97706;font-size:20px}
+.icon-btn{background:none;border:none;font-size:18px;color:#5A5346;cursor:pointer;padding:6px}
+.chat-container{flex:1;overflow-y:auto;padding:20px 0;display:flex;flex-direction:column;align-items:center}
+.messages{width:100%;max-width:750px;padding:0 16px;display:flex;flex-direction:column;gap:20px}
+.message{display:flex;gap:12px;line-height:1.6;font-size:15px}
+.avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.user .avatar{background:#2B2B2B;color:white}
+.assistant .avatar{background:#D97706;color:white}
+.bubble{flex:1;padding-top:3px;white-space:pre-wrap;word-break:break-word}
+.user .bubble{background:#FFF;border:1px solid #E5DDC8;padding:10px 14px;border-radius:14px}
+.bubble img{max-width:220px;border-radius:10px;display:block;margin-top:6px}
+.welcome{text-align:center;margin-top:40px;padding:0 20px}
+.welcome h1{font-size:24px;font-weight:600;margin-bottom:6px}
+.welcome p{color:#8A7F6B;font-size:14px}
+.attach-preview{width:100%;max-width:750px;padding:0 16px;margin-bottom:6px}
+.attach-chip{display:inline-flex;align-items:center;gap:8px;background:#ECE6D9;border-radius:10px;padding:6px 10px;font-size:13px}
+.attach-chip img{width:28px;height:28px;object-fit:cover;border-radius:6px}
+.attach-chip button{background:none;border:none;cursor:pointer;color:#8A7F6B}
+.input-area{padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;border-top:1px solid #E5DDC8;flex-shrink:0}
+.input-box{width:100%;max-width:750px;background:white;border:1px solid #E5DDC8;border-radius:22px;display:flex;align-items:flex-end;padding:6px 6px 6px 10px;box-shadow:0 2px 10px rgba(0,0,0,0.06)}
+.input-box:focus-within{border-color:#D97706}
+textarea{flex:1;border:none;outline:none;resize:none;max-height:120px;font-size:15px;padding:8px;background:transparent}
+.send-btn,.attach-btn{background:#D97706;color:white;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.attach-btn{background:#ECE6D9;color:#5A5346}
+.send-btn:disabled{background:#E5DDC8}
+</style>
+</head>
+<body>
+<div class="header">
+    <div class="logo"><i class="fa-solid fa-star-of-life"></i> AI Chat</div>
+    <button class="icon-btn" onclick="location.reload()" title="Yangi suhbat"><i class="fa-solid fa-plus"></i></button>
+</div>
+
+<div class="chat-container" id="chatContainer">
+    <div class="messages" id="messages">
+        <div class="welcome" id="welcome">
+            <h1>Qanday yordam bera olaman?</h1>
+            <p>Xabar yozing yoki rasm/fayl biriktiring</p>
+        </div>
+    </div>
+</div>
+
+<div class="attach-preview" id="attachPreview"></div>
+
+<div class="input-area">
+    <div class="input-box">
+        <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Rasm/fayl biriktirish">
+            <i class="fa-solid fa-paperclip"></i>
+        </button>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(event)">
+        <textarea id="input" rows="1" placeholder="Xabar yozing..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+        <button class="send-btn" id="btn" onclick="send()"><i class="fa-solid fa-arrow-up"></i></button>
+    </div>
+</div>
+
+<script>
+let history = [];
+let pendingImage = null; // {dataUrl, name}
+
+function handleFile(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+        alert('Hozircha faqat rasm fayllarini biriktirish mumkin.');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+        pendingImage = { dataUrl: reader.result, name: file.name };
+        renderAttachPreview();
+    };
+    reader.readAsDataURL(file);
+}
+
+function renderAttachPreview(){
+    const box = document.getElementById('attachPreview');
+    if(!pendingImage){ box.innerHTML=''; return; }
+    box.innerHTML = `<div class="attach-chip"><img src="${pendingImage.dataUrl}"><span>${pendingImage.name}</span><button onclick="removeAttachment()"><i class="fa-solid fa-xmark"></i></button></div>`;
+}
+function removeAttachment(){ pendingImage = null; renderAttachPreview(); document.getElementById('fileInput').value=''; }
+
+function addMsg(role, text, imageDataUrl){
+    const w = document.getElementById('welcome'); if(w) w.remove();
+    const div = document.createElement('div');
+    div.className = 'message ' + role;
+    const av = role === 'user' ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-star-of-life"></i>';
+    const img = imageDataUrl ? `<img src="${imageDataUrl}">` : '';
+    div.innerHTML = `<div class="avatar">${av}</div><div class="bubble">${text.replace(/</g,"&lt;")}${img}</div>`;
+    document.getElementById('messages').appendChild(div);
+    document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
+    return div;
+}
+
+async function send(){
+    const inp = document.getElementById('input');
+    const text = inp.value.trim();
+    if(!text && !pendingImage) return;
+
+    addMsg('user', text || '(rasm)', pendingImage?.dataUrl);
+
+    // Xabar tarkibini tayyorlash: matn + (agar bo'lsa) rasm
+    let content;
+    if(pendingImage){
+        content = [
+            { type: "text", text: text || "Bu rasmda nima bor?" },
+            { type: "image_url", image_url: { url: pendingImage.dataUrl } }
+        ];
+    } else {
+        content = text;
+    }
+    history.push({ role: "user", content: content });
+
+    inp.value = ""; inp.style.height = 'auto';
+    removeAttachment();
+    document.getElementById('btn').disabled = true;
+    const typing = addMsg('assistant', 'Yozmoqda...');
+
+    try{
+        const res = await fetch('/.netlify/functions/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: history })
+        });
+        const data = await res.json();
+        typing.remove();
+
+        if(!res.ok || data.error){
+            addMsg('assistant', 'Xatolik: ' + (data.error || 'nomalum xato'));
+        } else {
+            addMsg('assistant', data.reply);
+            history.push({ role: "assistant", content: data.reply });
+        }
+    } catch(e){
+        typing.remove();
+        addMsg('assistant', 'Server xatosi: ' + e.message);
+    }
+    document.getElementById('btn').disabled = false;
+}
+</script>
+</body>
+</html>
